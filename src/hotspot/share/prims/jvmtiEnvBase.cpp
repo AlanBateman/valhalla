@@ -2172,9 +2172,8 @@ JvmtiEnvBase::check_top_frame(Thread* current_thread, JavaThread* java_thread,
     return JVMTI_ERROR_OPAQUE_FRAME;
   }
 
-  // Prevent ForceEarlyReturnVoid from returning early from value class constructor as
-  // the instance fields are strictly-initialized fields.
-  if ((tos == vtos) && jvf->method()->is_object_constructor() && jvf->method()->method_holder()->is_inline_klass()) {
+  // Prevent ForceEarlyReturnVoid from returning early from constructor of class with strictly-initialized instance fields.
+  if ((tos == vtos) && jvf->method()->is_object_constructor() && jvf->method()->method_holder()->has_strict_instance_fields_in_hierarchy()) {
     return JVMTI_ERROR_OPAQUE_FRAME;
   }
 

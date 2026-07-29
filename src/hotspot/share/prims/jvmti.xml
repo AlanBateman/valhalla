@@ -3400,8 +3400,18 @@ err = (*jvmti)-&gt;Deallocate(jvmti, stack_info);
         method named <code>&lt;clinit&gt;</code> with a return type of
         <code>void</code>.
         <p/>
-        When preview features are enabled, this function can not be used to return
-        early from the constructor of a value class.
+        When preview features are enabled, this function can not be used to force
+        a return when the current frame is the constructor of a class with
+        <externallink id="../api/java.base/java/lang/reflect/Field.html#isStrictInit()">
+        strictly-initialized</externallink> instance fields in its class hierarchy
+        before the constructor of the class's direct superclass has completed execution.
+        An implementation may be more restrictive and not support forcing a return
+        from any point in a constructor of a class with strictly-initialized instance
+        fields in its class hierarchy.
+        <p/>
+        <b>Implementation Note:</b> In the HotSpot VM, <code>ForceEarlyReturnVoid</code>
+        does not support forcing a return from a constructor of a class with
+        strictly-initialized instance fields in its class hierarchy.
       </description>
       <origin>new</origin>
       <capabilities>
@@ -3418,8 +3428,10 @@ err = (*jvmti)-&gt;Deallocate(jvmti, stack_info);
       <errors>
         <error id="JVMTI_ERROR_OPAQUE_FRAME">
           The implementation is unable to force the current frame to return
-          (e.g. current frame is executing a native method or if preview features
-           are enabled, the current frame is the constructor for a value class)
+          (e.g. the current frame is executing a native method or, if preview
+          features are enabled, the current frame is the constructor of a class
+          with strictly-initialized instance fields in its class hierarchy before
+          the constructor of the class's direct superclass has completed execution)
         </error>
         <error id="JVMTI_ERROR_TYPE_MISMATCH">
           The called method has a result type.
