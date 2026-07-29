@@ -80,6 +80,7 @@ class Method : public Metadata {
   MethodFlags       _flags;
 
   u2                _intrinsic_id;               // vmSymbols::intrinsic_id (0 == _none)
+  Array<int>*       _strict_instance_fields_initialized_bcis;
 
   JFR_ONLY(DEFINE_TRACE_FLAG;)
 
@@ -752,6 +753,13 @@ public:
   // Helper routines for intrinsic_id() and vmIntrinsics::method().
   void init_intrinsic_id(vmSymbolID klass_id);     // updates from _none if a match
   static vmSymbolID klass_id_for_intrinsics(const Klass* holder);
+
+  // Indicates if the strict instance fields are initialized at the given bci of this constructor
+  bool strict_instance_fields_initialized_at(int bci) const;
+  void set_strict_instance_fields_initialized_bcis(Array<int>* bcis) {
+    _strict_instance_fields_initialized_bcis = bcis;
+  }
+  void replace_strict_instance_fields_initialized_bcis(Array<int>* bcis);
 
   bool caller_sensitive() const     { return constMethod()->caller_sensitive(); }
   void set_caller_sensitive() { constMethod()->set_caller_sensitive(); }

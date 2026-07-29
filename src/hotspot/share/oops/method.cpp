@@ -110,6 +110,7 @@ Method::Method(ConstMethod* xconst, AccessFlags access_flags, Symbol* name) {
   set_constMethod(xconst);
   set_access_flags(access_flags);
   set_intrinsic_id(vmIntrinsics::_none);
+  set_strict_instance_fields_initialized_bcis(nullptr);
   clear_method_data();
   clear_method_counters();
   set_vtable_index(Method::garbage_vtable_index);
@@ -132,6 +133,8 @@ Method::Method(ConstMethod* xconst, AccessFlags access_flags, Symbol* name) {
 // Release Method*.  The nmethod will be gone when we get here because
 // we've walked the code cache.
 void Method::deallocate_contents(ClassLoaderData* loader_data) {
+  MetadataFactory::free_array<int>(loader_data, _strict_instance_fields_initialized_bcis);
+  set_strict_instance_fields_initialized_bcis(nullptr);
   MetadataFactory::free_metadata(loader_data, constMethod());
   set_constMethod(nullptr);
   MetadataFactory::free_metadata(loader_data, method_data());
@@ -439,6 +442,7 @@ void Method::metaspace_pointers_do(MetaspaceClosure* it) {
   it->push(&_adapter);
   it->push(&_method_data);
   it->push(&_method_counters);
+  it->push(&_strict_instance_fields_initialized_bcis);
   NOT_PRODUCT(it->push(&_name);)
 }
 
@@ -1723,6 +1727,17 @@ methodHandle Method::clone_with_new_data(const methodHandle& m, u_char* new_code
   // so cast away newm()'s and m()'s Methodness.
   memcpy((void*)newm(), (void*)m(), sizeof(Method));
 
+  // If this method is the constructor of a class with strict init fields then we need to copy
+  // the list of bcis where the fields are initialized.
+  newm->set_strict_instance_fields_initialized_bcis(nullptr);
+  if (m->_strict_instance_fields_initialized_bcis != nullptr && new_code_length == m->code_size()) {
+    Array<int>* bcis = MetadataFactory::new_array<int>(
+      loader_data, m->_strict_instance_fields_initialized_bcis->length(), 0,
+      CHECK_(methodHandle()));
+    memcpy(bcis->data(), m->_strict_instance_fields_initialized_bcis->data(), bcis->length() * sizeof(int));
+    newm->set_strict_instance_fields_initialized_bcis(bcis);
+  }
+
   // Create shallow copy of ConstMethod.
   memcpy(newcm, m->constMethod(), sizeof(ConstMethod));
 
@@ -1857,6 +1872,27 @@ void Method::init_intrinsic_id(vmSymbolID klass_id) {
     set_intrinsic_id(id);
     return;
   }
+}
+
+// Indicates if the strict instance fields are initialized at the given bci of this constructor
+bool Method::strict_instance_fields_initialized_at(int bci) const {
+ assert(is_object_constructor() && method_holder()->has_strict_instance_fields_in_hierarchy(),
+        "must be a constructor for a class with strict instance fields in its hierarchy");
+  if (_strict_instance_fields_initialized_bcis != nullptr) {
+    for (int i = 0; i < _strict_instance_fields_initialized_bcis->length(); i++) {
+      if (_strict_instance_fields_initialized_bcis->at(i) == bci) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void Method::replace_strict_instance_fields_initialized_bcis(Array<int>* bcis) {
+  assert(bcis != nullptr, "must have verifier initialization information");
+  MetadataFactory::free_array<int>(method_holder()->class_loader_data(),
+                                   _strict_instance_fields_initialized_bcis);
+  set_strict_instance_fields_initialized_bcis(bcis);
 }
 
 bool Method::load_signature_classes(const methodHandle& m, TRAPS) {

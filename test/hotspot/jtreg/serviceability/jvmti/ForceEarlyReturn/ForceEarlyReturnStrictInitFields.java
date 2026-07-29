@@ -150,7 +150,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuper() throws Exception {
             int err = test(() -> new TestClass(this, 2), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
     }
 
@@ -211,7 +211,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuperSuper() throws Exception {
             int err = test(() -> new TestClass(this, 2), SuperClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
 
         @Test
@@ -223,7 +223,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuper() throws Exception {
             int err = test(() -> new TestClass(this, 4), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
     }
 
@@ -296,7 +296,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuper() throws Exception {
             int err = test(() -> new TestClass(this, 4), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
     }
 
@@ -342,7 +342,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterThis() throws Exception {
             int err = test(() -> new TestClass(this, 2), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
     }
 
@@ -363,7 +363,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuperLeft() throws Exception {
             int err = test(2);
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
 
         @Test
@@ -375,7 +375,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuperRight() throws Exception {
             int err = test(4);
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
 
         /**
@@ -680,7 +680,7 @@ class ForceEarlyReturnStrictInitFields {
                 // check TestClass is version 3
                 TestClass.assertVersion(3);
                 err = test(() -> new TestClass(this), TestClass.class, "<init>");
-                assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+                assertEquals(JVMTI_ERROR_NONE, err);
             } finally {
                 err = redefineClass(TestClass.class, classBytes);  // restore
                 assertEquals(JVMTI_ERROR_NONE, err);
@@ -1024,7 +1024,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterSuper() throws Exception {
             int err = test(() -> new TestClass(this, 2), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
     }
 
@@ -1061,7 +1061,7 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterThis() throws Exception {
             int err = test(() -> new TestClass(this, 2, 100), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+            assertEquals(JVMTI_ERROR_NONE, err);
         }
     }
 

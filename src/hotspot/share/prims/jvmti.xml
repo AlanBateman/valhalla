@@ -3409,9 +3409,12 @@ err = (*jvmti)-&gt;Deallocate(jvmti, stack_info);
         from any point in a constructor of a class with strictly-initialized instance
         fields in its class hierarchy.
         <p/>
-        <b>Implementation Note:</b> In the HotSpot VM, <code>ForceEarlyReturnVoid</code>
-        does not support forcing a return from a constructor of a class with
-        strictly-initialized instance fields in its class hierarchy.
+        <b>Implementation Note:</b> In the HotSpot VM, after construction of the
+        direct superclass has completed, <code>ForceEarlyReturnVoid</code> can force
+        a return from a constructor when the verifier has recorded initialization
+        information for the current execution point. Classes that are not verified,
+        including classes defined by the bootstrap class loader, may not have this
+        information.
       </description>
       <origin>new</origin>
       <capabilities>

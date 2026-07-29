@@ -39,6 +39,7 @@
 #include "jvm.h"
 #include "logging/log.hpp"
 #include "logging/logStream.hpp"
+#include "memory/metadataFactory.hpp"
 #include "memory/oopFactory.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/universe.hpp"
@@ -756,6 +757,9 @@ void ClassVerifier::verify_method(const methodHandle& m, TRAPS) {
 
   u4 code_length = m->code_size();
 
+  const bool track_strict_instance_field_initialization = m->is_object_constructor() && m->method_holder()->has_strict_instance_fields_in_hierarchy();
+  GrowableArray<int> strict_instance_fields_initialized_bcis;
+
   // Scan the bytecode and map each instruction's start offset to a number.
   char* code_data = generate_code_data(m, code_length, CHECK_VERIFY(this));
 
@@ -806,10 +810,19 @@ void ClassVerifier::verify_method(const methodHandle& m, TRAPS) {
     // Make sure every offset in stackmap table point to the beginning to
     // an instruction. Match current_frame to stackmap_table entry with
     // the same offset if exists.
+    u2 previous_stackmap_index = stackmap_index;
+    bool had_no_control_flow = no_control_flow;
     stackmap_index = verify_stackmap_table(
       stackmap_index, bci, &current_frame, &stackmap_table,
       no_control_flow, CHECK_VERIFY(this));
 
+    // For constructors with strict instance fields, record the BCI for the instruction if
+    // incoming frame is known at this BCI and the incoming "this" is initialized
+    if (track_strict_instance_field_initialization &&
+        (!had_no_control_flow || previous_stackmap_index != stackmap_index) &&
+        !current_frame.flag_this_uninit()) {
+      strict_instance_fields_initialized_bcis.append(bci);
+    }
 
     bool this_uninit = false;  // Set to true when invokespecial <init> initialized 'this'
     bool verified_exc_handlers = false;
@@ -1859,6 +1872,16 @@ void ClassVerifier::verify_method(const methodHandle& m, TRAPS) {
     verify_error(ErrorContext::bad_code(code_length),
         "Control flow falls through code end");
     return;
+  }
+
+  if (track_strict_instance_field_initialization && !has_error()) {
+    Array<int>* bcis = MetadataFactory::new_array<int>(
+      m->method_holder()->class_loader_data(), strict_instance_fields_initialized_bcis.length(),
+      CHECK_VERIFY(this));
+    for (int i = 0; i < bcis->length(); i++) {
+      bcis->at_put(i, strict_instance_fields_initialized_bcis.at(i));
+    }
+    m->replace_strict_instance_fields_initialized_bcis(bcis);
   }
 }
 
