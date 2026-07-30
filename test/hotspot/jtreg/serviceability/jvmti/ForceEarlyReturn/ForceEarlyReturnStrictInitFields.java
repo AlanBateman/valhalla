@@ -456,21 +456,15 @@ class ForceEarlyReturnStrictInitFields {
                 assertEquals(JVMTI_ERROR_NONE, suspendThread(thread));
                 suspended = true;
                 assertTopFrame(thread, TestClass.class, "<clinit>");
-                assertEquals(JVMTI_ERROR_NONE, forceEarlyReturnVoid(thread));
+                assertEquals(JVMTI_ERROR_OPAQUE_FRAME, forceEarlyReturnVoid(thread));
             } finally {
                 canContinue = true;
                 if (suspended) resumeThread(thread);
                 thread.join();
             }
-            assertFalse(finished, "<clinit> should have returned early");
-
-            // check that ExceptionInInitializerError was thrown
-            Throwable ex = exception;
-            assertInstanceOf(ExceptionInInitializerError.class, ex);
-            assertInstanceOf(IllegalStateException.class, ex.getCause());
-
-            // class should be in error
-            assertThrows(NoClassDefFoundError.class, () -> { var _ = TestClass.x; });
+            assertTrue(finished, "<clinit> should have completed");
+            assertNull(exception, "no exception expected");
+            assertEquals(100, TestClass.x);
         }
     }
 
@@ -521,13 +515,13 @@ class ForceEarlyReturnStrictInitFields {
                 assertEquals(JVMTI_ERROR_NONE, suspendThread(thread));
                 suspended = true;
                 assertTopFrame(thread, TestClass.class, "<clinit>");
-                assertEquals(JVMTI_ERROR_NONE, forceEarlyReturnVoid(thread));
+                assertEquals(JVMTI_ERROR_OPAQUE_FRAME, forceEarlyReturnVoid(thread));
             } finally {
                 canContinue = true;
                 if (suspended) resumeThread(thread);
                 thread.join();
             }
-            assertFalse(finished, "<clinit> should have returned early");
+            assertTrue(finished, "<clinit> should have completed");
             assertNull(exception, "no exception expected");
             assertEquals(100, TestClass.x);
         }
