@@ -890,6 +890,7 @@ public:
   void notify_strict_static_access(int field_index, bool is_writing, TRAPS);
   const char* format_strict_static_message(Symbol* field_name, const char* doing_what = nullptr);
   void throw_strict_static_exception(Symbol* field_name, const char* when, TRAPS);
+  bool has_unset_strict_static_fields() const;
 
   // strict instance fields
   bool has_strict_instance_fields() const     { return _misc_flags.has_strict_instance_fields(); }

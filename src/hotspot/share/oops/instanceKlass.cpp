@@ -1718,6 +1718,18 @@ void InstanceKlass::notify_strict_static_access(int field_index, bool is_writing
   }
 }
 
+bool InstanceKlass::has_unset_strict_static_fields() const {
+  if (!has_strict_static_fields()) {
+    return false;
+  }
+  for (int index = 0; index < fields_status()->length(); index++) {
+    if (fields_status()->adr_at(index)->is_strict_static_unset()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void InstanceKlass::throw_strict_static_exception(Symbol* field_name, const char* when, TRAPS) {
   ResourceMark rm(THREAD);
   const char* msg = format_strict_static_message(field_name, when);

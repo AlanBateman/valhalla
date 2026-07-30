@@ -2172,6 +2172,13 @@ JvmtiEnvBase::check_top_frame(Thread* current_thread, JavaThread* java_thread,
     return JVMTI_ERROR_OPAQUE_FRAME;
   }
 
+  // Prevent ForceEarlyReturnVoid from returning if the top-frame is the class initializer of a class with
+  // strictly-initialized instance fields in its hierarchy the fields are set.
+  if ((tos == vtos) && jvf->method()->is_class_initializer() &&
+     jvf->method()->method_holder()->has_unset_strict_static_fields()) {
+    return JVMTI_ERROR_OPAQUE_FRAME;
+  }
+
   // Prevent ForceEarlyReturnVoid from returning if the top-frame is the constructor of a class with
   // strictly-initialized instance fields in its hierarchy before super() is invoked.
   if ((tos == vtos) && jvf->method()->is_object_constructor() &&
