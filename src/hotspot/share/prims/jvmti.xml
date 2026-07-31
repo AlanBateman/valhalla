@@ -3428,7 +3428,7 @@ err = (*jvmti)-&gt;Deallocate(jvmti, stack_info);
           (e.g. the current frame is executing a native method or, if preview features
           are enabled, the current frame is the class initializer of a class with
           strictly-initialized static fields or a constructor of a class with
-          strictly-initialized instance in its class hierarchy.)
+          strictly-initialized instance fields in its class hierarchy.)
         </error>
         <error id="JVMTI_ERROR_TYPE_MISMATCH">
           The called method has a result type.

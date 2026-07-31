@@ -2157,8 +2157,10 @@ JDWP "Java(tm) Debug Wire Protocol"
             (Error THREAD_NOT_SUSPENDED)
             (Error OPAQUE_FRAME      "Unable to force the current frame to return "
                                      "(e.g. the current frame is executing a native method or "
-                                     "the current frame is the class initializer or constructor "
-                                     "of a class with strictly-initialized fields).")
+                                     "the current frame is the class initializer of a class "
+                                     "with strictly-initialized static fields or a constructor "
+                                     "of  a class with strictly-initialized instance fields "
+                                     "in its class hierarchy.)")
             (Error NO_MORE_FRAMES)
             (Error NOT_IMPLEMENTED)
             (Error TYPE_MISMATCH   "Value is not an appropriate type for the "
