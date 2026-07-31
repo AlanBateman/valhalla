@@ -2130,11 +2130,11 @@ JDWP "Java(tm) Debug Wire Protocol"
         "frame on the stack causes the thread to exit when resumed. "
         "<p>"
         "When preview features are enabled in the target VM, the specified "
-        "thread's current frame can not be the constructor of a class with "
+        "thread's current frame can not be the class initializer of a class with "
         "<a href=../../api/java.base/java/lang/reflect/Field.html#isStrictInit()>"
         "strictly-initialized<sup class=\"preview-mark\">PREVIEW</sup></a> "
-        "instance fields in its class hierarchy before the constructor of the "
-        "class's direct superclass has completed execution."
+        "static fields, or a constructor of a class with strictly-initialized "
+        "instance fields declared in the class or any of its superclasses."
         "<p>"
         "For void methods, the value must be a void value. "
         "For methods that return primitive values, the value's type must "
@@ -2157,7 +2157,8 @@ JDWP "Java(tm) Debug Wire Protocol"
             (Error THREAD_NOT_SUSPENDED)
             (Error OPAQUE_FRAME      "Unable to force the current frame to return "
                                      "(e.g. the current frame is executing a native method or "
-                                     "the current frame is the constructor for a value class).")
+                                     "the current frame is the class initializer or constructor "
+                                     "of a class with strictly-initialized fields).")
             (Error NO_MORE_FRAMES)
             (Error NOT_IMPLEMENTED)
             (Error TYPE_MISMATCH   "Value is not an appropriate type for the "

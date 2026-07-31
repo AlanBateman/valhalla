@@ -29,10 +29,10 @@
  * @library /test/lib
  * @build ${test.main.class}
  * @run driver jdk.test.lib.helpers.StrictProcessor
- *     ForceEarlyReturnStrictInitFields$BeforeAndAfterSuper1$TestClass
- *     ForceEarlyReturnStrictInitFields$BeforeAndAfterSuper2$SuperClass
- *     ForceEarlyReturnStrictInitFields$BeforeAndAfterSuper3$TestClass
- *     ForceEarlyReturnStrictInitFields$BeforeAndAfterThis$TestClass
+ *     ForceEarlyReturnStrictInitFields$ConstructorBeforeAndAfterSuper1$TestClass
+ *     ForceEarlyReturnStrictInitFields$ConstructorBeforeAndAfterSuper2$SuperClass
+ *     ForceEarlyReturnStrictInitFields$ConstructorBeforeAndAfterSuper3$TestClass
+ *     ForceEarlyReturnStrictInitFields$ConstructorBeforeAndAfterThis$TestClass
  *     ForceEarlyReturnStrictInitFields$MethodAfterSuper$TestClass
  *     ForceEarlyReturnStrictInitFields$MethodAfterInit$TestClass
  *     ForceEarlyReturnStrictInitFields$ClassInitializerBeforeSet$TestClass
@@ -42,8 +42,9 @@
 
 import java.lang.invoke.MethodHandles;
 import jdk.test.lib.helpers.StrictInit;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -101,7 +102,7 @@ class ForceEarlyReturnStrictInitFields {
      * constructor of a class with a strictly-initialized instance field.
      */
     @Nested
-    class BeforeAndAfterSuper1 extends ForceEarlyReturnTest {
+    class ConstructorBeforeAndAfterSuper1 extends ForceEarlyReturnTest {
         class TestClass {
             @StrictInit
             private int x;
@@ -144,7 +145,7 @@ class ForceEarlyReturnStrictInitFields {
      * instance field. The strict field is declared in the super class.
      */
     @Nested
-    class BeforeAndAfterSuper2 extends ForceEarlyReturnTest {
+    class ConstructorBeforeAndAfterSuper2 extends ForceEarlyReturnTest {
         class SuperClass {
             @StrictInit
             private int x;
@@ -217,7 +218,7 @@ class ForceEarlyReturnStrictInitFields {
      * instance field. The strict field is declared in the sub class.
      */
     @Nested
-    class BeforeAndAfterSuper3 extends ForceEarlyReturnTest {
+    class ConstructorBeforeAndAfterSuper3 extends ForceEarlyReturnTest {
         class SuperClass {
             SuperClass(ForceEarlyReturnTest test, int where) {
                 // before super
@@ -261,12 +262,14 @@ class ForceEarlyReturnStrictInitFields {
 
         @Test
         void testBeforeSuperSuper() throws Exception {
+            // no strict fields in SuperClass or its superclasses
             int err = test(() -> new TestClass(this, 1), SuperClass.class, "<init>");
             assertEquals(JVMTI_ERROR_NONE, err);
         }
 
         @Test
         void testAfterSuperSuper() throws Exception {
+            // no strict fields in SuperClass or its superclasses
             int err = test(() -> new TestClass(this, 2), SuperClass.class, "<init>");
             assertEquals(JVMTI_ERROR_NONE, err);
         }
@@ -290,7 +293,7 @@ class ForceEarlyReturnStrictInitFields {
      * before it chains to the another constructor to set the field.
      */
     @Nested
-    class BeforeAndAfterThis extends ForceEarlyReturnTest {
+    class ConstructorBeforeAndAfterThis extends ForceEarlyReturnTest {
         class TestClass {
             @StrictInit
             private int x;
@@ -326,6 +329,98 @@ class ForceEarlyReturnStrictInitFields {
         @Test
         void testAfterThis() throws Exception {
             int err = test(() -> new TestClass(this, 2), TestClass.class, "<init>");
+            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+        }
+    }
+
+    /**
+     * Test ForceEarlyReturnVoid when the target thread's top frame is the
+     * constructor of a value class with an instance field. Value classes
+     * rely upon strict field initialization.
+     */
+    @Nested
+    class ValueClassConstructor extends ForceEarlyReturnTest {
+        value class TestClass {
+            private int x;
+
+            TestClass(ForceEarlyReturnTest test, int where) {
+                x = 100;
+
+                // before super
+                if (where == 1) {
+                    test.ready = true;
+                    while (!test.canContinue) {}
+                }
+
+                super();
+
+                // after super
+                if (where == 2) {
+                    test.ready = true;
+                    while (!test.canContinue) {}
+                }
+            }
+        }
+
+        @BeforeAll()
+        static void verifyPreconditions() throws Exception {
+            assertTrue(TestClass.class.getDeclaredField("x").isStrictInit(),
+                    "expected to be strict field");
+        }
+
+        @Test
+        void testBeforeSuper() throws Exception {
+            int err = test(() -> new TestClass(this, 1), TestClass.class, "<init>");
+            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+        }
+
+        @Test
+        void testAfterSuper() throws Exception {
+            int err = test(() -> new TestClass(this, 2), TestClass.class, "<init>");
+            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+        }
+    }
+
+    /**
+     * Test ForceEarlyReturnVoid when the target thread's top frame is the
+     * constructor of a record with an instance field. Record fields are strict
+     * fields when compiled with preview features enabled.
+     */
+    @Nested
+    class RecordConstructor extends ForceEarlyReturnTest {
+        record TestClass(int x) {
+            TestClass(ForceEarlyReturnTest test, int where, int x) {
+                // before this
+                if (where == 1) {
+                    test.ready = true;
+                    while (!test.canContinue) {}
+                }
+
+                this(x);
+
+                // after this
+                if (where == 2) {
+                    test.ready = true;
+                    while (!test.canContinue) {}
+                }
+            }
+        }
+
+        @BeforeAll()
+        static void verifyPreconditions() throws Exception {
+            assertTrue(TestClass.class.getDeclaredField("x").isStrictInit(),
+                    "expected to be strict field");
+        }
+
+        @Test
+        void testBeforeThis() throws Exception {
+            int err = test(() -> new TestClass(this, 1, 100), TestClass.class, "<init>");
+            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
+        }
+
+        @Test
+        void testAfterThis() throws Exception {
+            int err = test(() -> new TestClass(this, 2, 100), TestClass.class, "<init>");
             assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
         }
     }
@@ -443,7 +538,6 @@ class ForceEarlyReturnStrictInitFields {
                 try {
                     MethodHandles.lookup().ensureInitialized(TestClass.class);
                 } catch (Throwable ex) {
-                    // ExceptionInInitializerError expected
                     exception = ex;
                 }
             });
@@ -502,7 +596,6 @@ class ForceEarlyReturnStrictInitFields {
                 try {
                     MethodHandles.lookup().ensureInitialized(TestClass.class);
                 } catch (Throwable ex) {
-                    // no exception is expected
                     exception = ex;
                 }
             });
@@ -526,85 +619,6 @@ class ForceEarlyReturnStrictInitFields {
             assertEquals(100, TestClass.x);
         }
     }
-
-    /**
-     * Test ForceEarlyReturnVoid when the target thread's top frame is the
-     * constructor of a value class with an instance field.
-     */
-    @Nested
-    class ValueClassTest extends ForceEarlyReturnTest {
-        value class TestClass {
-            private int x;
-
-            TestClass(ForceEarlyReturnTest test, int where) {
-                x = 100;
-
-                // before super
-                if (where == 1) {
-                    test.ready = true;
-                    while (!test.canContinue) {}
-                }
-
-                super();
-
-                // after super
-                if (where == 2) {
-                    test.ready = true;
-                    while (!test.canContinue) {}
-                }
-            }
-        }
-
-        @Test
-        void testBeforeSuper() throws Exception {
-            int err = test(() -> new TestClass(this, 1), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
-        }
-
-        @Test
-        void testAfterSuper() throws Exception {
-            int err = test(() -> new TestClass(this, 2), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
-        }
-    }
-
-    /**
-     * Test ForceEarlyReturnVoid when the target thread's top frame is the
-     * constructor of a record with an instance field.
-     */
-    @Nested
-    class RecordTest extends ForceEarlyReturnTest {
-        record TestClass(int x) {
-            TestClass(ForceEarlyReturnTest test, int where, int x) {
-                // before this
-                if (where == 1) {
-                    test.ready = true;
-                    while (!test.canContinue) {}
-                }
-
-                this(x);
-
-                // after this
-                if (where == 2) {
-                    test.ready = true;
-                    while (!test.canContinue) {}
-                }
-            }
-        }
-
-        @Test
-        void testBeforeThis() throws Exception {
-            int err = test(() -> new TestClass(this, 1, 100), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
-        }
-
-        @Test
-        void testAfterThis() throws Exception {
-            int err = test(() -> new TestClass(this, 2, 100), TestClass.class, "<init>");
-            assertEquals(JVMTI_ERROR_OPAQUE_FRAME, err);
-        }
-    }
-
 
     /**
      * Asserts that the given thread's top frame is the expected class/method.
